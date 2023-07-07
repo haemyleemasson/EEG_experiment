@@ -4,51 +4,24 @@ function Touch_movie(parNo)
 % if (nargin<1)
 %     error('needs participant number as input');
 % end
-send_trig = 1; %originally 1
+send_trig = 0; %originally 1
 numBlocks = 15;
 HomeDir = [cd];
-stims{1} = dir('500ms/001/0*.mov');
-stims{2} = dir('500ms/002/0*.mov');
-stims{3} = dir('500ms/003/0*.mov');
-stims{4} = dir('500ms/004/0*.mov');
-stims{5} = dir('500ms/005/0*.mov');
-stims{6} = dir('500ms/006/0*.mov');
+stims{1} = dir('500ms/001/0*.mp4');
+stims{2} = dir('500ms/002/0*.mp4');
+stims{3} = dir('500ms/003/0*.mp4');
+stims{4} = dir('500ms/004/0*.mp4');
+stims{5} = dir('500ms/005/0*.mp4');
+stims{6} = dir('500ms/006/0*.mp4');
 stimuliAff=length(stims{1})+length(stims{2})+length(stims{3});
 stimuliObj=length(stims{4})+length(stims{5})+length(stims{6});
 NumTrial=(stimuliAff+stimuliObj)*numBlocks;
 numCatch =round((stimuliAff+stimuliObj)*0.05)*numBlocks;
-fixDura = random ('unif', 1, 1.5, NumTrial+(numCatch*2),1); %random duration for fixation -> 1 and 1.5s ;
-expTime=(numBlocks*(stimuliAff+stimuliObj)+sum(fixDura));
-
+fixDura = random ('unif', 1, 1.5, NumTrial+(numCatch*2),1); %random duration for fixation -> 1clear screen and 1.5s ;
+expTime=(NumTrial+(numCatch*2))*0.5+sum(fixDura);
 totalExp=expTime/60; % ~ 45 mins [without counting break time]
 sprintf('This experiment will take about %d minutes',round(totalExp))
-RandomDir = fullfile(HomeDir, 'Random/'); %reading pseudo randomized trial order. 
-file1 = dir([char(RandomDir),'P',num2str(parNo),'_randomList_run*.mat']);
-file2 = dir([char(RandomDir),'P',num2str(parNo+20),'_randomList_run*.mat']);
-file3 = dir([char(RandomDir),'P',num2str(parNo+40),'_randomList_run*.mat']);
-TotalrandomList=[];
-for i=1:numBlocks
-    if i<7
-        TotalrandomList{i}=load([file1(1).folder '/' file1(i).name]);
-    elseif 6<i  &&  i <13
-        TotalrandomList{i}=load([file2(1).folder '/' file1(i-6).name]);
-    else
-        TotalrandomList{i}=load([file3(1).folder '/' file1(i-12).name]);
-    end
-end
-blockType=[]; blockType1=[];
-for i=1:numBlocks
-    findR=(TotalrandomList{1,i}.randomList(:,1)>3);
-    blockType{i}=zeros(length(TotalrandomList{1,i}.randomList(:,1)),2);
-    for k=1:length(findR)
-        if findR(k)==1
-            blockType1{i}(k,:) = [TotalrandomList{1,i}.randomList(k,1) TotalrandomList{1,i}.randomList(k,2)-13];
-        else
-            blockType1{i}(k,:) = [TotalrandomList{1,i}.randomList(k,1) TotalrandomList{1,i}.randomList(k,2)];
-        end
-        blockType{i} = [blockType1{i}];
-    end
-end
+blockType=read_trial_order(HomeDir,parNo,numBlocks); %load already randomized trial order
 %% Add catch trials
 whereRep=zeros(numCatch/numBlocks,numBlocks);
 for i=1:numBlocks
@@ -62,7 +35,7 @@ for i=1:numBlocks
 end
 simTrials=block;
 numTrials=length(simTrials{1});
-%% Make TrialList to save 
+%% Make TrialList to save
 TotaltrialList=[];
 for i=1:numBlocks
     trialNum = (length(simTrials{1,1}));
@@ -104,14 +77,14 @@ screenres = [1680 1050]; %set window resolution
 AssertOpenGL; HideCursor;
 ListenChar(2);
 try
-    Screen('Preference', 'SkipSyncTests', 2); %1 for mac %2 for window
+    Screen('Preference', 'SkipSyncTests', 1); %1 for mac %2 for window
     background_color=[0 0 0];
     screens = Screen('Screens');
     screenNumber= max(screens); % external screen
-    Screen('Resolution', screenNumber, screenres(1),screenres(2)); %set resolution for window
+    %Screen('Resolution', screenNumber, screenres(1),screenres(2)); %set resolution for window
     window=Screen('OpenWindow', screenNumber,background_color(1)); % full
     % window = Screen('OpenWindow', screenNumber, background_color(1), [0 0 640*2 480*2]); %for debugging
-    % [screenWidth screenHeight]=WindowSize(window); % for mac
+    [screenWidth screenHeight]=WindowSize(window); % for mac
     [x,y] = WindowCenter(window);
     black=BlackIndex(window);
     white=WhiteIndex(window);
@@ -151,64 +124,36 @@ try
     
     if send_trig, io64(ioObj,address,0); end %set trigger to 0
     %% Experiment starts;
+    tel=1;
     for currBlock=1:numBlocks % 15 blocks in total, block=repetition.
         sprintf('%dth block begins',currBlock)
         start=GetSecs();
         for currStim = 1:numTrials % 75 stimulus + some catch trials
             starttri=GetSecs();
-            StimuliDir=fullfile(HomeDir,sprintf('500ms/%03d/',TotaltrialList(currStim,5)));
-            moviefile=fullfile(StimuliDir, sprintf('/%03d.mov',TotaltrialList(currStim,6)));
+            StimuliDir=fullfile(HomeDir,sprintf('500ms/%03d/',TotaltrialList(tel,5)));
+            moviefile=fullfile(StimuliDir, sprintf('/%03d.mov',TotaltrialList(tel,6)))
+            videoinfo = [moviefile];
+            tel=tel+1;
             ISI=fixDura(currStim+((numBlocks-1)*numTrials)); % ISI=interval showing the fixation cross
-           if currStim==1
-            ShowFixation(window, white, squarephoto); % start with the fixation cross
-            WaitSecs(2);
-           else
-           end
+            if currStim==1
+                ShowFixation(window, white, squarephoto); % start with the fixation cross
+                WaitSecs(2);
+            else
+            end
             [movie dur fps sx sy]= Screen('OpenMovie', window, moviefile, 0); %open movie
             Screen('PlayMovie',movie,1,0,0); %play movie
             % Playback loop: Fetch video frames and display them...
             destrect=[x-sx/4, y-sy/4, x+sx/4, y+sy/4];
+            if send_trig %send trigger on 1st frame
+                io64(ioObj,address,1);
+                WaitSecs(0.02);
+            end
+            onsettime=GetSecs;
             while(1)
                 [tex,pts] = Screen('GetMovieImage', window, movie, 1); %get movie as a texture
                 % Valid texture returned?
-                if (tex>0)
-                    % Yes. Draw the new texture immediately to screen:
-                    Screen('DrawTexture', window, tex, [], destrect);
-                    DrawFormattedText(window, '+', 'center', 'center',[255 255 255], 50);
-                    Screen('FillRect', window, black, squarephoto); % to time it on the photodiode
-                    Screen('Flip', window);
-                    % Update display:
-                    if pts==0
-                        onsettime=GetSecs;
-                        %&&pts<0.04 %1st frame occurs at 0.03 s (30 FPS)
-                        if send_trig %send trigger on 1st frame
-                            io64(ioObj,address,1);
-                            WaitSecs(0.02);
-                        end
-                        %fprintf('\ntrig %d', t)
-                    end
-                    
-                    %record response - can be delayed to fixation period
-                    [keyPressed, seconds, keyCode] = KbCheck;
-                    if (keyPressed)
-                        if (any ((keyCode > 0) & active_keys))
-                            TotaltrialList(currStim+(numTrials*(currBlock-1)),7) = 1;
-                            fprintf('response made at block %d,trial %d  \n',TotaltrialList(currStim+(numTrials*(currBlock-1)),2), ...
-                            TotaltrialList(currStim+(numTrials*(currBlock-1)),3));
-                            if send_trig %send trigger on response
-                                io64(ioObj,address,3);
-                                WaitSecs(0.02);
-                            end
-                            
-                        end
-                    end
-                    
-                    % Release texture:
-                    Screen('Close', tex);
-                end
-                
                 if tex<0
-                    videoDuration=GetSecs()-onsettime;
+                    
                     if send_trig
                         io64(ioObj,address,2); %trigger on movie end
                         WaitSecs(0.02); %make sure there's enough time to send the trigger
@@ -216,17 +161,35 @@ try
                     % No. This means that the end of this movie is reached - exit the loop
                     break
                 end
+                % Yes. Draw the new texture immediately to screen:
+                Screen('DrawTexture', window, tex, [], destrect);
+                DrawFormattedText(window, '+', 'center', 'center',[255 255 255], 50);
+                Screen('FillRect', window, black, squarephoto); % to time it on the photodiode
+                Screen('Flip', window);
+                
+                % record response - can be delayed to fixation period
+%                 [keyPressed, seconds, keyCode] = KbCheck;
+%                 if (keyPressed)
+%                     if (any ((keyCode > 0) & active_keys))
+%                         TotaltrialList(currStim+(numTrials*(currBlock-1)),7) = 1;
+%                         fprintf('response made at block %d,trial %d  \n',TotaltrialList(currStim+(numTrials*(currBlock-1)),2), ...
+%                             TotaltrialList(currStim+(numTrials*(currBlock-1)),3));
+%                         if send_trig %send trigger on response
+%                             io64(ioObj,address,3);
+%                             WaitSecs(0.02);
+%                         end
+%                         
+%                     end
+%                 end
                 
             end
-            
-            % Done with old movie. Stop its playback:
-            Screen('PlayMovie', movie, 0);
-            
-            % Close movie object:
-            Screen('CloseMovie', movie);
-            clear movie
+            videoDuration=GetSecs()-onsettime;
             %fixation cross
             fixdura=ShowFixation(window, white, squarephoto);
+                        % Done with old movie. Stop its playback:
+            Screen('PlayMovie', movie, 0);
+            % Close movie object:
+            Screen('CloseMovie', movie);
             currentTime = GetSecs - fixdura;
             while (currentTime <= ISI) %show fixation until ISI duration (1~1.5 sc)
                 currentTime = GetSecs - fixdura;
@@ -257,19 +220,21 @@ try
             Screen('TextSize',window, 50);
             [nx, ny, bbox] = DrawFormattedText(window, breakstring, 'center', 'center',[255 255 255], 50);
             Screen ('Flip', window);
+            WaitSecs(2);
             %Continue experiment by pressing space
-            key = 0;
-            while (~key)
-                [keyPressed, seconds, keyCode] = KbCheck;
-                if (keyPressed)
-                    key = find (keyCode) == KbName ('f');
-                end
-            end
+%             key = 0;
+%             while (~key)
+%                 [keyPressed, seconds, keyCode] = KbCheck;
+%                 if (keyPressed)
+%                     key = find (keyCode) == KbName ('f');
+%                 end
+%             end
         end
         
     end
     disp('save the file');
     save([char(SaveDir),'P',num2str(parNo),'_SocialTouch_EEG.mat'],'TotaltrialList');
+    save([char(SaveDir),'P',num2str(parNo),'_SocialTouch_EEG_videoinfo.mat'],'videoinfo');
     endText= 'Thank you for the participation!'
     Screen('TextSize',window, 50);
     [nx, ny, bbox] = DrawFormattedText(window, endText, 'center', 'center',[255 255 255], 50);
