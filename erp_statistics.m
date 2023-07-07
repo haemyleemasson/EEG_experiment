@@ -1,6 +1,6 @@
 % define the parameters for the statistical comparison
 clear all; clc; close all;
-figpath='/Users/haemyleemasson/Desktop/EEG_2022/Data/ERP/';
+figpath='/Data/ERP/';
 load erp %run erp.m code first
 j=2% j=1 for 200 ms average, j=2 for 100 ms average
 for i=0:5*j+1
