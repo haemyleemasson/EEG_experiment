@@ -1,5 +1,5 @@
 clear all; clc; close all;
-figpath='/Users/haemyleemasson/Desktop/EEG_2022/Data/ERP/';
+figpath='/Data/ERP/'; 
 filename='erp.mat'
 numsub=20;
 % use ft_timelockanalysis to compute the ERPs and visualize
